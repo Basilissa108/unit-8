@@ -1,11 +1,8 @@
 const express = require("express");
 const path = require("path");
-const Sequelize = require("sequelize");
-// instantiate sequelize
-const sequelize = new Sequelize({
-    dialect: "sqlite",
-    storage: "library.db"
-});
+const bodyParser = require('body-parser');
+const db = require("./db/index.js");
+const { Book } = db.models;
 
 // instantiate express app
 const app = express();
@@ -15,65 +12,130 @@ app.set("view engine", "pug");
 app.use("/static", express.static(path.join(__dirname, "public")));
 app.use("/images", express.static(path.join(__dirname, "images")));
 
-//get / - Home route should redirect to the /books route.
+// make app use bodyparser for parsing application/json
+app.use(bodyParser.json()); 
+// make app use bodyparser for parsing application/xwww-
+app.use(bodyParser.urlencoded({ extended: true })); 
+
+// redirect to /books route
 app.get("/", (req, res) => {
   res.redirect('/books'); 
 });
-//get /books - Shows the full list of books.
-app.get("/books", (req, res) => {
 
+// shows the full list of books.
+app.get("/books", async (req, res) => {
+  // wrapping the code in a try catch block to handle errors
+  try {
+    // get all books from db
+    const books = await Book.findAll();
+    // render index.pug and pass all books to it
+    res.render("index.pug", { "books": books });
+  } catch(error) {
+    res.render("error.pug", { message: error.message });
+  }
 });
-//get /books/new - Shows the create new book form.
+
+// shows the create new book form.
 app.get("/books/new", (req, res) => {
-
-});
-//post /books/new - Posts a new book to the database.
-app.post("/books/new", (req, res) => {
-
-});
-//get /books/:id - Shows book detail form.
-app.get("/books/:id", (req, res) => {
-
-});
-//post /books/:id - Updates book info in the database.
-app.post("/books/:id", (req, res) => {
-
-});
-//post /books/:id/delete - Deletes a book. Careful, this can’t be undone. It can be helpful to create a new “test” book to test deleting.
-app.post("/books/:id/delete", (req, res) => {
-
+  // render new-book.pug
+  res.render("new-book.pug");
 });
 
-// declare DB model
-class Book extends Sequelize.Model {}
-// declare properties with data types
-Book.init({
-    id: {
-        type: Sequelize.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-    },
-    title: {
-        type: Sequelize.STRING,
-        allowNull: false,
-    },
-    author:  {
-        type: Sequelize.STRING,
-        allowNull: false,
-    },
-    genre: Sequelize.STRING,
-    year:  Sequelize.INTEGER,
-}, { sequelize });
-
-(async () => {
-    // Sync all tables
-    await sequelize.sync();
-    
-    try {
-
-    } catch (error) {
-        console.error('Error connecting to the database: ', error);
+// posts a new book to the database.
+app.post("/books/new", async (req, res) => {
+  // construct a temporary book object and assign it to the variable temp
+  const temp = {
+    title: req.body.title,
+    author: req.body.author,
+    genre: req.body.genre,
+    year: req.body.year
+  };
+  // wrapping the code in a try catch block to handle errors
+  try {
+    await Book.create(temp);
+    // after the book has been created, redirect to books overview
+    res.redirect("/books");
+  } catch (error) {
+    // check if the error is a validation error, if so display validation errors in the form, otherwise redirect to a general error page
+    if (error.name === "SequelizeValidationError") {
+      // map over the errors in error.errors, and assign their message to the variable errors
+      const errors = error.errors.map(err => err.message);
+      res.render("new-book.pug", { book: temp, errors: errors });
+    } else {
+      res.render("error.pug", { message: error.message });
     }
+  }
+});
+
+// shows book detail form.
+app.get("/books/:id", async (req, res) => {
+  // wrapping the code in a try catch block to handle errors
+  try {
+    const book = await Book.findByPk(req.params.id);
+    if (book) {
+      res.render("update-book.pug", { "book": book });
+    } else {
+      res.render("error.pug", { message: `We cannot find a book with the ID ${req.params.id}.` });
+    }
+  } catch(error) {
+    res.render("error.pug", { message: error.message });
+  }
+});
+
+// updates book info in the database.
+app.post("/books/:id", async (req, res) => {
+  // construct a temporary book object and assign it to the variable temp
+  const temp = {
+    title: req.body.title,
+    author: req.body.author,
+    genre: req.body.genre,
+    year: req.body.year
+  };
+  // wrapping the code in a try catch block to handle errors
+  try {
+    // call Book.update with the new values and use the supplied book id to find the record in the database
+    await Book.update(
+      temp,
+      { where: { id: req.params.id }}
+    );
+    // after the update has been completed, redirect to books overview
+    res.redirect("/books");
+  } catch (error) {
+    // check if the error is a validation error, if so display validation errors in the form, otherwise redirect to a general error page
+    if (error.name === "SequelizeValidationError") {
+      // map over the errors in error.errors, and assign their message to the variable errors
+      const errors = error.errors.map(err => err.message);
+      res.render("update-book.pug", { book: temp, errors: errors });
+    } else {
+      res.render("error.pug", { message: error.message });
+    }
+  }
+});
+
+// deletes a book by id
+app.post("/books/:id/delete", async (req, res) => {
+  // wrapping the code in a try catch block to handle errors
+  try {
+    await Book.destroy({ where: { id: req.params.id }});
+    res.redirect("/books");
+  } catch (error) {
+    res.render("error.pug", { message: error.message });
+  }
+});
+
+// set up a fallback route to display a 404 error for not existing routes
+app.get("*", (req, res) => {
+  // set the response status to 404
+  res.status(404);
+  // render the page-not-found view
+  res.render("page-not-found.pug");
+});
+
+// sync db instance
+(async () => {
+  db.sequelize.sync()
+    .then(() => console.log("synced with db"))
+    .catch(error => console.log(error));
 })();
 
-app.listen(3000, () => console.log(`Example app listening on port ${3000}!`))
+app.listen(3000, () => console.log(`Example app listening on port ${3000}!`));
