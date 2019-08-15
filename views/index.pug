@@ -20,4 +20,14 @@ block content
                     td #{book.author}
                     td #{book.genre}
                     td #{book.year}
+        
+    .pagination-controls
+        a(class=(page <= 1 ? "paging-btn disabled" : "paging-btn") href=`/books/${pagesize}/${page - 1}`) &#8249;
+        span #{page}
+        a(class=(pagesize >= books.length ? "paging-btn disabled" : "paging-btn")  href=`/books/${pagesize}/${page + 1}`) &#8250;
 
+    .page-size-select
+        select(name="pagesize")
+            option(value="5") 5
+            option(value="10") 10
+            option(value="15") 15

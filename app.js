@@ -19,17 +19,27 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // redirect to /books route
 app.get("/", (req, res) => {
-  res.redirect('/books'); 
+  // redirect to url with pagesize and page params defaulted to 10 and 1
+  res.redirect('/books/10/1'); 
 });
 
 // shows the full list of books.
 app.get("/books", async (req, res) => {
+  // redirect to url with pagesize and page params defaulted to 10 and 1
+  res.redirect('/books/10/1'); 
+});
+
+app.get("/books/:pagesize/:page", async (req, res) => {
   // wrapping the code in a try catch block to handle errors
   try {
-    // get all books from db
-    const books = await Book.findAll();
+    // get pagination data from the requests params
+    const pagesize = parseInt(req.params.pagesize);
+    const page = parseInt(req.params.page);
+    const offset = (page * pagesize) - pagesize;
+    // get all books from db for the selected page
+    const books = await Book.findAll({ offset: offset, limit: pagesize });
     // render index.pug and pass all books to it
-    res.render("index.pug", { "books": books });
+    res.render("index.pug", { books: books, page: page });
   } catch(error) {
     res.render("error.pug", { message: error.message });
   }
