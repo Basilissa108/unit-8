@@ -3,6 +3,7 @@ const path = require("path");
 const bodyParser = require('body-parser');
 const db = require("./db/index.js");
 const { Book } = db.models;
+const Op = db.Sequelize.Op;
 
 // instantiate express app
 const app = express();
@@ -20,26 +21,41 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // redirect to /books route
 app.get("/", (req, res) => {
   // redirect to url with pagesize and page params defaulted to 10 and 1
-  res.redirect('/books/10/1'); 
+  res.redirect("/books"); 
 });
 
-// shows the full list of books.
+// shows the full list of books
 app.get("/books", async (req, res) => {
-  // redirect to url with pagesize and page params defaulted to 10 and 1
-  res.redirect('/books/10/1'); 
-});
-
-app.get("/books/:pagesize/:page", async (req, res) => {
   // wrapping the code in a try catch block to handle errors
   try {
-    // get pagination data from the requests params
-    const pagesize = parseInt(req.params.pagesize);
-    const page = parseInt(req.params.page);
-    const offset = (page * pagesize) - pagesize;
-    // get all books from db for the selected page
-    const books = await Book.findAll({ offset: offset, limit: pagesize });
-    // render index.pug and pass all books to it
-    res.render("index.pug", { books: books, page: page });
+    // get query and page from the requests params
+    const query = req.query.searchQuery;
+    const page = parseInt(req.query.page) || 1;
+    // set pageSize to 10
+    const pageSize = 10;
+    // calculate offset
+    const offset = (page * pageSize) - pageSize;
+    // create a variable for books
+    let books;
+    // check if there is a query, if so return books matching the query, otherwise return all books
+    if (query) {
+      books= await Book.findAll({
+        where: {
+          [Op.or]: [
+            { title: { [Op.like]: `%${query}%` } },
+            { author: { [Op.like]: `%${query}%` } },
+            { genre: { [Op.like]: `%${query}%` } },
+            { year: { [Op.like]: `%${query}%` } }
+          ]
+        },
+        offset: offset,
+        limit: pageSize
+      });
+    } else {
+      books = await Book.findAll({ offset: offset, limit: pageSize });
+    }
+    // render index.pug and pass all books, the page number, and the query to it
+    res.render("index.pug", { books: books, page: page, query: query });
   } catch(error) {
     res.render("error.pug", { message: error.message });
   }

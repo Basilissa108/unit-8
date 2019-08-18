@@ -24,11 +24,6 @@ a.button, input[type=submit] {
   cursor: pointer;
 }
 
-a.button.disabled {
-  background-color: grey;
-  pointer-events: none;
-}
-
 form a.button, input[type=submit] {
   margin-left: 140px;
   transition: 0.4s;
@@ -99,4 +94,22 @@ input[type=text] {
 
 .error {
   color: rgb(236, 15, 15);
+}
+
+.paging-controls {
+  margin-top: 20px;
+  text-align: center;
+  width: auto;
+  cursor: default;
+}
+
+a.paging-btn {
+  margin: 0px 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+a.paging-btn.disabled {
+  color: grey;
+  pointer-events: none;
 }
