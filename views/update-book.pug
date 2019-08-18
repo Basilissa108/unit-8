@@ -22,9 +22,7 @@ block content
             label(for="year") Year
             input(id="year" type="text", name="year", value=`${book.year}`)
         p
-            input(type="submit", value="Update Book")
-    form(action=`/books/${book.id}/delete`, method="post")
-        p
-            a(class="button" href="/books") Cancel
-        p
-            input(type="submit", value="Delete Book")
+            input(type="submit", value="Update Book" class="primary-btn")
+    form(action=`/books/${book.id}/delete`, method="post", class="delete-form")
+            a(class="secondary-btn" href="/books") Cancel
+            input(type="submit", value="Delete Book", class="secondary-btn")
