@@ -10,7 +10,7 @@
   "author": "Basilissa Albers",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "pug": "^2.0.3",
     "sequelize": "^5.13.0",
     "sqlite3": "^4.0.9"
